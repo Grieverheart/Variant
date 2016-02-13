@@ -84,6 +84,43 @@ namespace detail{
         assert(false);
     }
 
+    template<typename... ArgsT>
+    const typename Variant<ArgsT...>::data_t* get_data(const Variant<ArgsT...>& var){
+        return &var.data_;
+    }
+
+    template<typename... ArgsT>
+    typename Variant<ArgsT...>::data_t* get_data(Variant<ArgsT...>& var){
+        return &var.data_;
+    }
+
+    template<size_t idx, typename T, typename... ArgsT>
+    typename std::enable_if<idx >= sizeof...(ArgsT), typename T::result_type>::type
+    apply_visitor_helper(const T& visitor, const Variant<ArgsT...>& var){
+        return detail::forced_return<typename T::result_type>();
+    }
+
+    template<size_t idx, typename T, typename... ArgsT>
+    typename std::enable_if<idx < sizeof...(ArgsT), typename T::result_type>::type
+    apply_visitor_helper(const T& visitor, const Variant<ArgsT...>& var){
+        using type = typename detail::type_at_index<idx, ArgsT...>::type;
+        return visitor(*reinterpret_cast<const type*>(get_data(var)));
+    }
+
+    template<size_t idx_a, size_t idx_b, typename T, typename... ArgsT>
+    typename std::enable_if<(idx_a >= sizeof...(ArgsT)) || (idx_b >= sizeof...(ArgsT)), typename T::result_type>::type
+    apply_visitor_helper(const T& visitor, const Variant<ArgsT...>& var_a, const Variant<ArgsT...>& var_b){
+        return detail::forced_return<typename T::result_type>();
+    }
+
+    template<size_t idx_a, size_t idx_b, typename T, typename... ArgsT>
+    typename std::enable_if<(idx_a < sizeof...(ArgsT)) && (idx_b < sizeof...(ArgsT)), typename T::result_type>::type
+    apply_visitor_helper(const T& visitor, const Variant<ArgsT...>& var_a, const Variant<ArgsT...>& var_b){
+        using type_a = typename detail::type_at_index<idx_a, ArgsT...>::type;
+        using type_b = typename detail::type_at_index<idx_b, ArgsT...>::type;
+        return visitor(*reinterpret_cast<const type_a*>(get_data(var_a)), *reinterpret_cast<const type_b*>(get_data(var_b)));
+    }
+
     template<size_t idx, typename T, typename... ArgsT>
     typename std::enable_if<idx >= sizeof...(ArgsT), typename T::result_type>::type
     apply_visitor_helper(const T& visitor, Variant<ArgsT...>& var){
@@ -94,7 +131,7 @@ namespace detail{
     typename std::enable_if<idx < sizeof...(ArgsT), typename T::result_type>::type
     apply_visitor_helper(const T& visitor, Variant<ArgsT...>& var){
         using type = typename detail::type_at_index<idx, ArgsT...>::type;
-        return visitor(*reinterpret_cast<const type*>(var.data()));
+        return visitor(*reinterpret_cast<type*>(get_data(var)));
     }
 
     template<size_t idx_a, size_t idx_b, typename T, typename... ArgsT>
@@ -108,7 +145,7 @@ namespace detail{
     apply_visitor_helper(const T& visitor, Variant<ArgsT...>& var_a, Variant<ArgsT...>& var_b){
         using type_a = typename detail::type_at_index<idx_a, ArgsT...>::type;
         using type_b = typename detail::type_at_index<idx_b, ArgsT...>::type;
-        return visitor(*reinterpret_cast<const type_a*>(var_a.data()), *reinterpret_cast<const type_b*>(var_b.data()));
+        return visitor(*reinterpret_cast<type_a*>(get_data(var_a)), *reinterpret_cast<type_b*>(get_data(var_b)));
     }
 
 }
@@ -133,13 +170,25 @@ struct DestructVisitor: public static_visitor<> {
     }
 };
 
+template<typename T>
+struct CopyVisitor: public static_visitor<T> {
+    template<typename U>
+    T operator()(const U& var)const{
+        T data;
+        new (&data) U(var);
+        return data;
+    }
+};
+
 template<typename... ArgsT>
 class Variant{
 private:
     static const size_t data_size  = detail::static_max<sizeof(ArgsT)...>::value;
     static const size_t data_align = detail::static_max<alignof(ArgsT)...>::value;
+public:
     using data_t = typename std::aligned_storage<data_size, data_align>::type;
 
+private:
     int type_id_;
     data_t data_;
 
@@ -160,35 +209,53 @@ public:
         type_id_ = detail::type_index<T, ArgsT...>::value;
     }
 
-    Variant(const Variant& val)
-    {
-        assert(false);
-        //TODO: Proper implementation
-    }
+    Variant(const Variant& val):
+        type_id_(val.type_id_),
+        data_(apply_visitor(CopyVisitor<data_t>(), val))
+    {}
 
-    Variant(Variant&& val)
+    Variant(Variant&& val):
+        type_id_(val.type_id_),
+        data_(val.data_)
     {
-        assert(false);
-        //TODO: Proper implementation
+        val.type_id_ = -1;
     }
 
     ~Variant(void){
-        apply_visitor(DestructVisitor(), *this);
-    }
-
-    const data_t* data(void)const{
-        return &data_;
+        if(type_id_ >= 0) apply_visitor(DestructVisitor(), *this);
     }
 
     int type_id(void)const{
         return type_id_;
     }
+
+    template<typename... ArgsV>
+    friend
+    const typename Variant<ArgsV...>::data_t* detail::get_data(const Variant<ArgsV...>& var);
+    template<typename... ArgsV>
+    friend
+    typename Variant<ArgsV...>::data_t* detail::get_data(Variant<ArgsV...>& var);
 };
 
 #define case_call(idx)\
     case idx:{\
         return detail::apply_visitor_helper<idx, T, ArgsT...>(visitor, var);\
     }\
+
+template<typename T, typename... ArgsT>
+typename T::result_type apply_visitor(const T& visitor, const Variant<ArgsT...>& var){
+    switch(var.type_id()){
+        case_call(0);
+        case_call(1);
+        case_call(2);
+        case_call(3);
+        case_call(4);
+        case_call(5);
+        case_call(6);
+        case_call(7);
+        default: return detail::forced_return<typename T::result_type>();
+    }
+}
 
 template<typename T, typename... ArgsT>
 typename T::result_type apply_visitor(const T& visitor, Variant<ArgsT...>& var){
@@ -226,6 +293,21 @@ typename T::result_type apply_visitor(const T& visitor, Variant<ArgsT...>& var){
 
 template<typename T, typename... ArgsT>
 typename T::result_type apply_visitor(const T& visitor, Variant<ArgsT...>& var_a, Variant<ArgsT...>& var_b){
+    switch(var_a.type_id()){
+        case_call_a(0);
+        case_call_a(1);
+        case_call_a(2);
+        case_call_a(3);
+        case_call_a(4);
+        case_call_a(5);
+        case_call_a(6);
+        case_call_a(7);
+        default: return detail::forced_return<typename T::result_type>();
+    }
+}
+
+template<typename T, typename... ArgsT>
+typename T::result_type apply_visitor(const T& visitor, const Variant<ArgsT...>& var_a, const Variant<ArgsT...>& var_b){
     switch(var_a.type_id()){
         case_call_a(0);
         case_call_a(1);
