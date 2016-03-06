@@ -4,12 +4,10 @@
 #include <type_traits>
 #include <utility>
 #include <cassert>
-//#include <new>
+
+#include "variant_fwd.hpp"
 
 namespace variant{
-
-template<typename... ArgsT>
-class Variant;
 
 namespace detail{
     template <size_t arg1, size_t ... others>
