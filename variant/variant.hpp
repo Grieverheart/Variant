@@ -253,6 +253,14 @@ typename T::result_type apply_visitor(const T& visitor, const Variant<ArgsT...>&
         case_call(5);
         case_call(6);
         case_call(7);
+        case_call(8);
+        case_call(9);
+        case_call(10);
+        case_call(11);
+        case_call(12);
+        case_call(13);
+        case_call(14);
+        case_call(15);
         default: return detail::forced_return<typename T::result_type>();
     }
 }
@@ -268,6 +276,14 @@ typename T::result_type apply_visitor(const T& visitor, Variant<ArgsT...>& var){
         case_call(5);
         case_call(6);
         case_call(7);
+        case_call(8);
+        case_call(9);
+        case_call(10);
+        case_call(11);
+        case_call(12);
+        case_call(13);
+        case_call(14);
+        case_call(15);
         default: return detail::forced_return<typename T::result_type>();
     }
 }
@@ -288,6 +304,14 @@ typename T::result_type apply_visitor(const T& visitor, Variant<ArgsT...>& var){
             case_call_b(idx_a, 5);\
             case_call_b(idx_a, 6);\
             case_call_b(idx_a, 7);\
+            case_call_b(idx_a, 8);\
+            case_call_b(idx_a, 9);\
+            case_call_b(idx_a, 10);\
+            case_call_b(idx_a, 11);\
+            case_call_b(idx_a, 12);\
+            case_call_b(idx_a, 13);\
+            case_call_b(idx_a, 14);\
+            case_call_b(idx_a, 15);\
             default: return detail::forced_return<typename T::result_type>();\
         }
 
@@ -302,6 +326,14 @@ typename T::result_type apply_visitor(const T& visitor, Variant<ArgsT...>& var_a
         case_call_a(5);
         case_call_a(6);
         case_call_a(7);
+        case_call_a(8);
+        case_call_a(9);
+        case_call_a(10);
+        case_call_a(11);
+        case_call_a(12);
+        case_call_a(13);
+        case_call_a(14);
+        case_call_a(15);
         default: return detail::forced_return<typename T::result_type>();
     }
 }
@@ -317,6 +349,14 @@ typename T::result_type apply_visitor(const T& visitor, const Variant<ArgsT...>&
         case_call_a(5);
         case_call_a(6);
         case_call_a(7);
+        case_call_a(8);
+        case_call_a(9);
+        case_call_a(10);
+        case_call_a(11);
+        case_call_a(12);
+        case_call_a(13);
+        case_call_a(14);
+        case_call_a(15);
         default: return detail::forced_return<typename T::result_type>();
     }
 }
